@@ -1,0 +1,13 @@
+services:
+  guacamole:
+    image: jwetzell/guacamole
+    container_name: guacamole
+    volumes:
+      - ./postgres:/config
+    ports:
+      - 8080:8080
+   environment:
+      - TZ=America/New_York
+volumes:
+  postgres:
+    driver: local
