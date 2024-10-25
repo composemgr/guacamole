@@ -1,9 +1,9 @@
 services:
   guacamole:
-    image: jwetzell/guacamole
+    image: jwetzell/guacamole:latest
     container_name: guacamole
     volumes:
-      - ./postgres:/config
+      - "/var/lib/srv/$USER/docker/jwetzell/guacamole/latest/rootfs/data/db/postgres:/config"
     ports:
       - 8080:8080
    environment:
