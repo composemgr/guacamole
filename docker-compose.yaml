@@ -11,3 +11,6 @@ services:
 volumes:
   postgres:
     driver: local
+
+networks:
+  guacamole:
