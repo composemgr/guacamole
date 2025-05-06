@@ -1,0 +1,21 @@
+name: guacamole
+services:
+  server:
+    image: jwetzell/guacamole:latest
+    container_name: guacamole
+    hostname: guacamole
+    restart: always
+    pull_policy: always
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - '/var/lib/srv/$USER/docker/jwetzell/guacamole/latest/rootfs/data/db/postgres:/config'
+    ports:
+      - 172.17.0.1:50038:8080
+    networks:
+      - guacamole
+
+networks:
+  guacamole:
+    name: guacamole
+    external: false
