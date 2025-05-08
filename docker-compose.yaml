@@ -1,17 +1,26 @@
+# nginx proxy address - http://172.17.0.1:50038
+
 name: guacamole
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
 services:
-  server:
+  app:
     image: jwetzell/guacamole:latest
-    container_name: guacamole
-    hostname: guacamole
+    container_name: guacamole-app
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
+    logging: *default-logging
     environment:
-      - TZ=America/New_York
+      - TZ=${TZ:-America/New_York}
     volumes:
-      - '/var/lib/srv/$USER/docker/jwetzell/guacamole/latest/rootfs/data/db/postgres:/config'
+      - '/var/lib/srv/$USER/docker/db/postgres/guacamole:/config'
     ports:
-      - 172.17.0.1:50038:8080
+      - '172.17.0.1:50038:8080'
     networks:
       - guacamole
 
