@@ -18,7 +18,7 @@ services:
     environment:
       - TZ=${TZ:-America/New_York}
     volumes:
-      - '/var/lib/srv/$USER/docker/db/postgres/guacamole:/config'
+      - '/var/lib/srv/$USER/databases/postgres/guacamole:/config'
     ports:
       - '172.17.0.1:50038:8080'
     networks:
