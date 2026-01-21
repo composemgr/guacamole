@@ -1,0 +1,30 @@
+# nginx proxy address - http://172.17.0.1:50038
+
+name: guacamole
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: jwetzell/guacamole:latest
+    container_name: guacamole-app
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - './rootfs/config/guacamole:/config'
+    ports:
+      - '172.17.0.1:50038:8080'
+    networks:
+      - guacamole
+
+networks:
+  guacamole:
+    name: guacamole
+    external: false
