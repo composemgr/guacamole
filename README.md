@@ -45,7 +45,7 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/config/guacamole` - Data storage
+- `./volumes/config/guacamole` - Data storage
 
 ## 🔍 Logging
 
