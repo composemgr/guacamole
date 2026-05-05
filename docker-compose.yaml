@@ -18,7 +18,7 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
     volumes:
-      - './rootfs/config/guacamole:/config'
+      - './volumes/config/guacamole:/config'
     ports:
       - '172.17.0.1:50038:8080'
     networks:
