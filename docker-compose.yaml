@@ -1,4 +1,4 @@
-# nginx proxy address - http://172.17.0.1:50038
+# nginx proxy address - http://172.17.0.1:64192
 
 name: guacamole
 x-logging: &default-logging
@@ -8,87 +8,73 @@ x-logging: &default-logging
   driver: json-file
 
 services:
-  guacd:
-    image: guacamole/guacd:latest
-    container_name: guacamole-guacd
-    restart: always
-    pull_policy: always
-    logging: *default-logging
-    networks:
-      - guacamole
-    environment:
-      CONTAINER_NAME: guacamole-guacd
-
   app:
     image: guacamole/guacamole:latest
     container_name: guacamole-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
     hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: guacamole-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      WEBAPP_CONTEXT: ROOT
       GUACD_HOSTNAME: guacamole-guacd
       GUACD_PORT: 4822
       POSTGRES_HOSTNAME: guacamole-db
+      POSTGRES_PORT: 5432
       POSTGRES_DATABASE: ${DB_CREATE_DATABASE_NAME:-guacamole}
       POSTGRES_USER: ${DB_USER_NAME:-guacamole}
-      POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
-      CONTAINER_NAME: guacamole-app
-      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-replace-with-a-random-password}
     ports:
-      - '172.17.0.1:50038:8080'
+      - '172.17.0.1:64192:8080'
     depends_on:
-      - guacd
-      - db
+      - guacamole-guacd
+      - guacamole-db
     networks:
       - guacamole
-      - proxy
-      - cloudflare
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://guacamole-app:8080'
-      - 'cloudflare.hostname=guacamole.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.guacamole-app.entrypoints=http'
-      - 'traefik.http.routers.guacamole-app-secure.tls=true'
-      - 'traefik.http.routers.guacamole-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.guacamole-app-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.guacamole-app.middlewares=guacamole-app-https-redirect'
-      - 'traefik.http.routers.guacamole-app-secure.entrypoints=https'
-      - 'traefik.http.routers.guacamole-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.guacamole-app-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.guacamole-app-secure.service=guacamole-app'
-      - 'traefik.http.services.guacamole-app.loadbalancer.server.port=8080'
 
-  db:
-    image: postgres:latest
-    container_name: guacamole-db
+  guacamole-guacd:
+    image: guacamole/guacd:latest
+    container_name: guacamole-guacd
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: guacamole-guacd
     restart: always
     pull_policy: always
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
-      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-guacamole}
-      POSTGRES_USER: ${DB_USER_NAME:-guacamole}
-      POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
-      CONTAINER_NAME: guacamole-db
-    volumes:
-      - './volumes/data/db/postgres/guacamole:/var/lib/postgresql/data'
+      CONTAINER_NAME: guacamole-guacd
     networks:
       - guacamole
+
+  guacamole-db:
+    image: postgres:latest
+    container_name: guacamole-db
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: guacamole-db
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: guacamole-db
+      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-guacamole}
+      POSTGRES_USER: ${DB_USER_NAME:-guacamole}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-replace-with-a-random-password}
+    volumes:
+      - './volumes/db/postgres/guacamole:/var/lib/postgresql:z'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER_NAME:-guacamole} -d ${DB_CREATE_DATABASE_NAME:-guacamole}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER_NAME:-guacamole} -d ${DB_CREATE_DATABASE_NAME:-guacamole}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - guacamole
 
 networks:
   guacamole:
     name: guacamole
     external: false
-  proxy:
-    external: true
-  cloudflare:
-    external: true

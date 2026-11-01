@@ -1,14 +1,22 @@
 ## 👋 Welcome to guacamole 🚀
 
-Clientless remote desktop gateway
+Clientless remote desktop and web application gateway
 
 ## 📋 Description
 
-Clientless remote desktop gateway
+Apache Guacamole is a clientless remote desktop gateway. It provides a web UI
+for accessing SSH, RDP, VNC, and Telnet hosts without a client-side agent,
+backed by the guacd proxy daemon and a PostgreSQL database.
 
 ## 🚀 Services
 
-- **app**: jwetzell/guacamole:latest
+- **app**: guacamole/guacamole:latest
+- **guacamole-guacd**: guacamole/guacd:latest
+
+### Infrastructure Components
+
+- **guacamole-db**: postgres:latest - Postgres database
+
 
 ## 📦 Installation
 
@@ -21,7 +29,8 @@ curl -q -LSsf "https://raw.githubusercontent.com/composemgr/guacamole/main/docke
 ```bash
 git clone "https://github.com/composemgr/guacamole" ~/.local/srv/docker/guacamole
 cd ~/.local/srv/docker/guacamole
-docker compose up -d
+cp default.env .env
+docker compose --env-file .env up -d
 ```
 
 ### Option 3: Using composemgr
@@ -35,41 +44,96 @@ composemgr install guacamole
 
 ```shell
 TZ=America/New_York
+DB_CREATE_DATABASE_NAME=guacamole
+DB_USER_NAME=guacamole
+DB_USER_PASS=replace-with-a-random-password
 ```
 
 See `docker-compose.yaml` for complete list of configurable options.
 
+### Environment Files
+
+`default.env.sample` holds the full set of variables and is copied to `.env`
+before starting the stack:
+
+```bash
+cp default.env .env
+docker compose --env-file .env up -d
+```
+
+`app.env.sample` holds the app-specific overrides and is copied to `app.env`:
+
+```bash
+cp app.env.sample app.env
+```
+
+`composemgr up` applies `app.env` and `default.env` automatically. Raw
+`docker compose` commands need `--env-file .env` to pick up the same values.
+
+### Reverse Proxy
+
+Three standalone compose files ship in this repo:
+
+| File | Use |
+|------|-----|
+| `docker-compose.yaml` | Default, published on `172.17.0.1:64192` |
+| `docker-compose.traefik.yaml` | Behind an existing external `traefik` network |
+| `docker-compose.tunnel.yaml` | Behind an existing external `cloudflare` tunnel network |
+
+```bash
+docker compose -f docker-compose.traefik.yaml --env-file .env up -d
+```
+
 ## 🌐 Access
 
-- **Web Interface**: http://172.17.0.1:50038
+- **Web Interface**: http://172.17.0.1:64192
+
+The database schema is not created automatically. Initialize it once after the
+first start:
+
+```bash
+docker compose --env-file .env exec -T app /opt/guacamole/bin/initdb.sh --postgresql | \
+  docker compose --env-file .env exec -T guacamole-db psql -U guacamole -d guacamole
+```
+
+The first sign-in uses the default Guacamole credentials
+(`guacadmin` / `guacadmin`) — change them immediately.
 
 ## 📂 Volumes
 
-- `./volumes/config/guacamole` - Data storage
+- `./volumes/db/postgres/guacamole` - Database data
+
+## 🔐 Security
+
+- Change all default passwords before deploying to production
+- guacd and Postgres are internal-only and never published to the host
+- Configure HTTPS using a reverse proxy (nginx, traefik, caddy)
+- Regularly update Docker images for security patches
+- Backup your database regularly
 
 ## 🔍 Logging
 
 ```shell
-docker compose logs -f app
+docker compose --env-file .env logs -f app
 ```
 
 ## 🛠️ Management
 
 ```bash
 # Start services
-docker compose up -d
+docker compose --env-file .env up -d
 
 # Stop services
-docker compose down
+docker compose --env-file .env down
 
 # Update to latest images
-docker compose pull && docker compose up -d
+docker compose --env-file .env pull && docker compose --env-file .env up -d
 
 # View logs
-docker compose logs -f
+docker compose --env-file .env logs -f
 
 # Restart services
-docker compose restart
+docker compose --env-file .env restart
 ```
 
 ## 📋 Requirements

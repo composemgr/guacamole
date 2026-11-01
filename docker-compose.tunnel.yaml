@@ -1,0 +1,83 @@
+name: guacamole
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: guacamole/guacamole:latest
+    container_name: guacamole-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: guacamole-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      WEBAPP_CONTEXT: ROOT
+      GUACD_HOSTNAME: guacamole-guacd
+      GUACD_PORT: 4822
+      POSTGRES_HOSTNAME: guacamole-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${DB_CREATE_DATABASE_NAME:-guacamole}
+      POSTGRES_USER: ${DB_USER_NAME:-guacamole}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-replace-with-a-random-password}
+    depends_on:
+      - guacamole-guacd
+      - guacamole-db
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://guacamole-app:8080'
+      - 'cloudflare.hostname=${BASE_HOST_NAME:-$HOSTNAME}'
+    networks:
+      - guacamole
+      - cloudflare
+
+  guacamole-guacd:
+    image: guacamole/guacd:latest
+    container_name: guacamole-guacd
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: guacamole-guacd
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: guacamole-guacd
+    networks:
+      - guacamole
+
+  guacamole-db:
+    image: postgres:latest
+    container_name: guacamole-db
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: guacamole-db
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: guacamole-db
+      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-guacamole}
+      POSTGRES_USER: ${DB_USER_NAME:-guacamole}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-replace-with-a-random-password}
+    volumes:
+      - './volumes/db/postgres/guacamole:/var/lib/postgresql:z'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER_NAME:-guacamole} -d ${DB_CREATE_DATABASE_NAME:-guacamole}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - guacamole
+
+networks:
+  guacamole:
+    name: guacamole
+    external: false
+  cloudflare:
+    external: true
